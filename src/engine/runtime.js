@@ -1072,6 +1072,19 @@ class Runtime extends EventEmitter {
     }
 
     /**
+     * Launch a script. This is like toggling a script, but it creates a new thread running that script regardless
+     * of whether or not the script is already being run.
+     * @param {!string} topBlockId ID of block that starts the script.
+     */
+    launchScript (topBlockId, opts) {
+        opts = Object.assign({
+            target: this._editingTarget,
+            stackClick: false
+        }, opts);
+        this._pushThread(topBlockId, opts.target, opts);
+    }
+
+    /**
      * Enqueue a script that when finished will update the monitor for the block.
      * @param {!string} topBlockId ID of block that starts the script.
      * @param {?Target} optTarget target Target to run script on. If not supplied, uses editing target.

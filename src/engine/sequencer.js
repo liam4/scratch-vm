@@ -291,6 +291,23 @@ class Sequencer {
     }
 
     /**
+     * Launch a new thread running a branch in the current block.
+     * @param {!Thread} thread Thread object to step to branch.
+     * @param {number} branchNum Which branch to launch (i.e., 1, 2).
+     */
+    launchBranch(thread, branchNum) {
+        if (!branchNum) {
+            branchNum = 1;
+        }
+        const currentBlockId = thread.peekStack();
+        const branchId = thread.target.blocks.getBranch(
+            currentBlockId,
+            branchNum
+        );
+        this.runtime.launchScript(branchId, {target: thread.target});
+    }
+
+    /**
      * Step a procedure.
      * @param {!Thread} thread Thread object to step to procedure.
      * @param {!string} procedureCode Procedure code of procedure to step to.

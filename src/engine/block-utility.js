@@ -74,6 +74,14 @@ class BlockUtility {
     }
 
     /**
+     * Launch a new thread running a branch in the current block.
+     * @param {number} branchNum Which branch to launch (i.e., 1, 2).
+     */
+    launchBranch (branchNum) {
+        this.sequencer.launchBranch(this.thread, branchNum);
+    }
+
+    /**
      * Stop all threads.
      */
     stopAll () {
