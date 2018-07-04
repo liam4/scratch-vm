@@ -290,15 +290,6 @@ class Scratch3PenBlocks {
             blockIconURI: blockIconURI,
             blocks: [
                 {
-                    opcode: 'launch',
-                    blockType: BlockType.CONDITIONAL,
-                    text: formatMessage({
-                        id: 'pen.launch',
-                        default: 'launch',
-                        description: 'launches a script in a new thread'
-                    })
-                },
-                {
                     opcode: 'clear',
                     blockType: BlockType.COMMAND,
                     text: formatMessage({
@@ -488,10 +479,6 @@ class Scratch3PenBlocks {
                 colorParam: this._initColorParam()
             }
         };
-    }
-
-    launch (args, util) {
-        util.launchBranch(1);
     }
 
     /**
