@@ -1,3 +1,5 @@
+const Decimal = require('decimal.js');
+
 class MathUtil {
     /**
      * Convert a value from degrees to radians.
@@ -60,7 +62,7 @@ class MathUtil {
         case 270:
             return -Infinity;
         default:
-            return parseFloat(Math.tan((Math.PI * angle) / 180).toFixed(10));
+            return parseFloat(Decimal.tan((Math.PI * angle) / 180).toFixed(10));
         }
     }
 

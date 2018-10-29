@@ -1,5 +1,6 @@
 const Cast = require('../util/cast.js');
 const MathUtil = require('../util/math-util.js');
+const Decimal = require('decimal.js');
 
 class Scratch3OperatorsBlocks {
     constructor (runtime) {
@@ -38,19 +39,19 @@ class Scratch3OperatorsBlocks {
     }
 
     add (args) {
-        return Cast.toNumber(args.NUM1) + Cast.toNumber(args.NUM2);
+        return +Decimal.add(Cast.toNumber(args.NUM1), Cast.toNumber(args.NUM2));
     }
 
     subtract (args) {
-        return Cast.toNumber(args.NUM1) - Cast.toNumber(args.NUM2);
+        return +Decimal.sub(Cast.toNumber(args.NUM1), Cast.toNumber(args.NUM2));
     }
 
     multiply (args) {
-        return Cast.toNumber(args.NUM1) * Cast.toNumber(args.NUM2);
+        return +Decimal.mul(Cast.toNumber(args.NUM1), Cast.toNumber(args.NUM2));
     }
 
     divide (args) {
-        return Cast.toNumber(args.NUM1) / Cast.toNumber(args.NUM2);
+        return +Decimal.div(Cast.toNumber(args.NUM1), Cast.toNumber(args.NUM2));
     }
 
     lt (args) {
@@ -118,34 +119,34 @@ class Scratch3OperatorsBlocks {
     mod (args) {
         const n = Cast.toNumber(args.NUM1);
         const modulus = Cast.toNumber(args.NUM2);
-        let result = n % modulus;
+        let result = Decimal.mod(n, modulus);
         // Scratch mod is kept positive.
         if (result / modulus < 0) result += modulus;
         return result;
     }
 
     round (args) {
-        return Math.round(Cast.toNumber(args.NUM));
+        return Decimal.round(Cast.toNumber(args.NUM));
     }
 
     mathop (args) {
         const operator = Cast.toString(args.OPERATOR).toLowerCase();
         const n = Cast.toNumber(args.NUM);
         switch (operator) {
-        case 'abs': return Math.abs(n);
-        case 'floor': return Math.floor(n);
-        case 'ceiling': return Math.ceil(n);
-        case 'sqrt': return Math.sqrt(n);
-        case 'sin': return parseFloat(Math.sin((Math.PI * n) / 180).toFixed(10));
-        case 'cos': return parseFloat(Math.cos((Math.PI * n) / 180).toFixed(10));
+        case 'abs': return +Decimal.abs(n);
+        case 'floor': return +Decimal.floor(n);
+        case 'ceiling': return +Decimal.ceil(n);
+        case 'sqrt': return +Decimal.sqrt(n);
+        case 'sin': return parseFloat(Decimal.sin((Math.PI * n) / 180).toFixed(10));
+        case 'cos': return parseFloat(Decimal.cos((Math.PI * n) / 180).toFixed(10));
         case 'tan': return MathUtil.tan(n);
-        case 'asin': return (Math.asin(n) * 180) / Math.PI;
-        case 'acos': return (Math.acos(n) * 180) / Math.PI;
-        case 'atan': return (Math.atan(n) * 180) / Math.PI;
-        case 'ln': return Math.log(n);
-        case 'log': return Math.log(n) / Math.LN10;
-        case 'e ^': return Math.exp(n);
-        case '10 ^': return Math.pow(10, n);
+        case 'asin': return (+Decimal.asin(n) * 180) / Math.PI;
+        case 'acos': return (+Decimal.acos(n) * 180) / Math.PI;
+        case 'atan': return (+Decimal.atan(n) * 180) / Math.PI;
+        case 'ln': return Decimal.log(n);
+        case 'log': return Decimal.log(n) / Math.LN10;
+        case 'e ^': return Decimal.exp(n);
+        case '10 ^': return Decimal.pow(10, n);
         }
         return 0;
     }

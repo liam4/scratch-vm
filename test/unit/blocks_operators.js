@@ -11,18 +11,21 @@ test('getPrimitives', t => {
 test('add', t => {
     t.strictEqual(blocks.add({NUM1: '1', NUM2: '1'}), 2);
     t.strictEqual(blocks.add({NUM1: 'foo', NUM2: 'bar'}), 0);
+    t.strictEqual(blocks.add({NUM1: '0.1', NUM2: '0.2'}), 0.3);
     t.end();
 });
 
 test('subtract', t => {
     t.strictEqual(blocks.subtract({NUM1: '1', NUM2: '1'}), 0);
     t.strictEqual(blocks.subtract({NUM1: 'foo', NUM2: 'bar'}), 0);
+    t.strictEqual(blocks.subtract({NUM1: '0.3', NUM2: '0.1'}), 0.2);
     t.end();
 });
 
 test('multiply', t => {
     t.strictEqual(blocks.multiply({NUM1: '2', NUM2: '2'}), 4);
     t.strictEqual(blocks.multiply({NUM1: 'foo', NUM2: 'bar'}), 0);
+    t.strictEqual(blocks.multiply({NUM1: '0.1', NUM2: '0.2'}), 0.02);
     t.end();
 });
 
