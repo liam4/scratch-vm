@@ -28,6 +28,33 @@ class Scratch3ControlFunBlocks {
          * @type {Runtime}
          */
         this.runtime = runtime;
+
+        this._initialized = false;
+
+        this._oldCreatePenSkin = () => { throw new Error('Not initialized yet!'); };
+
+        this._newPenSkinId = -1;
+
+        this._stagePenSkinId = -1;
+    }
+
+    static get DEFAULT_DRAW_STATE () {
+        return {
+            penSkinId: -1
+        };
+    }
+
+    static get STATE_KEY () {
+        return 'towerofnix.drawOnCostume';
+    }
+
+    _getDrawState (target) {
+        let drawState = target.getCustomState(Scratch3ControlFunBlocks.STATE_KEY);
+        if (!drawState) {
+            drawState = Clone.simple(Scratch3ControlFunBlocks.DEFAULT_DRAW_STATE);
+            target.setCustomState(Scratch3ControlFunBlocks.STATE_KEY, drawState);
+        }
+        return drawState;
     }
 
     /**
@@ -47,16 +74,45 @@ class Scratch3ControlFunBlocks {
                     opcode: 'launch',
                     blockType: BlockType.CONDITIONAL,
                     text: formatMessage({
-                        id: 'pen.launch',
+                        id: 'controlFun.launch',
                         default: 'launch',
                         description: 'launches a script in a new thread'
                     })
                 },
+                {
+                    opcode: 'setPenTarget',
+                    blockType: BlockType.COMMAND,
+                    text: formatMessage({
+                        id: 'controlFun.setPenTarget',
+                        default: 'draw on [TARGET] with pen',
+                        description: 'change what the pen will draw on'
+                    }),
+                    arguments: {
+                        TARGET: {
+                            type: ArgumentType.STRING,
+                            menu: 'PEN_TARGET',
+                            defaultValue: 'my costume'
+                        }
+                    }
+                },
+                {
+                    opcode: 'useAsCostume',
+                    blockType: BlockType.COMMAND,
+                    text: formatMessage({
+                        id: 'controlFun.useAsCostume',
+                        default: 'use my canvas as costume',
+                        description: 'use the sprite\'s pen canvas as its costume'
+                    })
+                }
             ],
-            menus: {}
+            menus: {
+                PEN_TARGET: [
+                    {text: 'my costume', value: 'my costume'},
+                    {text: 'stage', value: 'stage'}
+                ]
+            }
         };
     }
-
 
     /**
      * The "launch" block starts the given script, irregardless of whether or not it's already running, in a separate
@@ -64,6 +120,96 @@ class Scratch3ControlFunBlocks {
      */
     launch (args, util) {
         util.launchBranch(1);
+    }
+
+    setPenTarget (args, util) {
+        const { target } = util.thread;
+        this._initialize(target.renderer);
+        if (args.TARGET === 'my costume') {
+            const drawState = this._getDrawState(target);
+            this._newPenSkinId = this._getStateSkin(drawState);
+        } else if (args.TARGET === 'stage') {
+            this._newPenSkinId = this._stagePenSkinId;
+        }
+    }
+
+    useAsCostume (args, util) {
+        const { target } = util.thread;
+        const { renderer } = target;
+        this._initialize(renderer);
+        const skinId = this._getStateSkin(this._getDrawState(target));
+        renderer.updateDrawableProperties(target.drawableID, {
+            skinId: skinId
+        });
+    }
+
+    _getStateSkin(drawState) {
+        if (drawState.penSkinId < 0) {
+            drawState.penSkinId = this._oldCreatePenSkin();
+        }
+        return drawState.penSkinId;
+    }
+
+    _initialize(renderer) {
+        if (!this._initialized) {
+            this._oldCreatePenSkin = renderer.createPenSkin.bind(renderer);
+            this._determineStagePenSkinID(renderer);
+            this._initialized = true;
+        }
+    }
+
+    _determineStagePenSkinID(renderer) {
+        // The stage pen skin may already exist, i.e. if we the pen was set down before this was called.
+        this._stagePenSkinId = renderer._allSkins.findIndex(skin => 'drawLine' in skin);
+
+        // If it does exist, immediately override the _allSkins renderer property.
+        if (this._stagePenSkinId >= 0) {
+            // Pass false because it's not the first time it will have been called; i.e. the internal Scratch code
+            // will already have run, and we can right away start returning the pen skin ID set by this extension.
+            this._overridePenSkin(renderer, false)
+        }
+
+        // If it does not yet exist, prepare for it to be created. Once it is, _allSkins will be overridden.
+        if (this._stagePenSkinId < 0) {
+            this._prepareForStagePenSkinID(renderer);
+        }
+    }
+
+    _prepareForStagePenSkinID(renderer) {
+        renderer.createPenSkin = () => {
+            this._stagePenSkinId = this._oldCreatePenSkin();
+            if (this._newPenSkinId < 0) {
+                this._newPenSkinId = this._stagePenSkinId;
+            }
+
+            // First time we get from _allSkins after createPenSkin should still return actual stage pen skin, because
+            // the get is from internal Scratch code. After that it should return the set (overridden) pen skin ID.
+            firstTime = true;
+            this._overridePenSkin(renderer, firstTime);
+
+            return this._stagePenSkinId;
+        };
+    }
+
+    _overridePenSkin(renderer, firstTime) {
+        renderer._allSkins = new Proxy(renderer._allSkins, {
+            get: (target, key) => {
+                if (firstTime) {
+                    firstTime = false;
+                    return target[key];
+                }
+
+                if (key === this._stagePenSkinId.toString()) {
+                    return this._getPenSkin(target);
+                } else {
+                    return target[key];
+                }
+            }
+        });
+    }
+
+    _getPenSkin(allSkins) {
+        return allSkins[this._newPenSkinId];
     }
 }
 
