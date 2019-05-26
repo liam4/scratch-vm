@@ -830,11 +830,12 @@ const deserializeBlocks = function (blocks) {
  * @param {!object} object From-JSON "Scratch object:" sprite, stage, watcher.
  * @param {!Runtime} runtime Runtime object to load all structures into.
  * @param {JSZip} zip Sb3 file describing this project (to load assets from)
+ * @param {?function} incrementAssetCounter Callback function to increment counter of downloaded assets.
  * @return {?{costumePromises:Array.<Promise>,soundPromises:Array.<Promise>,soundBank:SoundBank}}
  * Object of arrays of promises for asset objects used in Sprites. As well as a
  * SoundBank for the sound assets. null for unsupported objects.
  */
-const parseScratchAssets = function (object, runtime, zip) {
+const parseScratchAssets = function (object, runtime, zip, incrementAssetCounter, setTotalAssetCount) {
     if (!object.hasOwnProperty('name')) {
         // Watcher/monitor - skip this object until those are implemented in VM.
         // @todo
@@ -905,6 +906,16 @@ const parseScratchAssets = function (object, runtime, zip) {
         // process has been completed.
     });
 
+    if (incrementAssetCounter) {
+        // For each asset that finishes downloading, increment the counter (and then return the asset).
+        return assets.map(promise => promise
+            .then(asset => {
+                incrementAssetCounter();
+                return asset;
+            }));
+    }
+
+    // No incrementAssetCounter callback provided - just return the assets as-are.
     return assets;
 };
 
@@ -1209,9 +1220,11 @@ const replaceUnsafeCharsInVariableIds = function (targets) {
  * @param  {Runtime} runtime - Runtime instance
  * @param {JSZip} zip - Sb3 file describing this project (to load assets from)
  * @param {boolean} isSingleSprite - If true treat as single sprite, else treat as whole project
+ * @param {?function} incrementAssetCounter Callback function to increment counter of downloaded assets.
+ * @param {?function} setTotalAssetCount Callback function to set total number of assets to be downloaded.
  * @returns {Promise.<ImportedProject>} Promise that resolves to the list of targets after the project is deserialized
  */
-const deserialize = function (json, runtime, zip, isSingleSprite) {
+const deserialize = function (json, runtime, zip, isSingleSprite, incrementAssetCounter, setTotalAssetCount) {
     const extensions = {
         extensionIDs: new Set(),
         extensionURLs: new Map()
@@ -1231,6 +1244,15 @@ const deserialize = function (json, runtime, zip, isSingleSprite) {
         targetObjects.map(target =>
             parseScratchAssets(target, runtime, zip))
     )
+        .then(assets => {
+            if (setTotalAssetCount) {
+                console.log(assets);
+                // Let the runtime know how many assets there are to be loaded. This can be used to display a
+                // progress bar.
+                setTotalAssetCount(assets.length);
+            }
+            return assets;
+        })
         // Force this promise to wait for the next loop in the js tick. Let
         // storage have some time to send off asset requests.
         .then(assets => Promise.resolve(assets))

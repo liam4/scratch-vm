@@ -160,6 +160,8 @@ class VirtualMachine extends EventEmitter {
         this.flyoutBlockListener = this.flyoutBlockListener.bind(this);
         this.monitorBlockListener = this.monitorBlockListener.bind(this);
         this.variableListener = this.variableListener.bind(this);
+        this.setTotalAssetCount = this.setTotalAssetCount.bind(this);
+        this.incrementAssetCounter = this.incrementAssetCounter.bind(this);
     }
 
     /**
@@ -357,11 +359,30 @@ class VirtualMachine extends EventEmitter {
             log.error('No storage module present; cannot load project: ', id);
             return;
         }
-        const vm = this;
         const promise = storage.load(storage.AssetType.Project, id);
         promise.then(projectAsset => {
-            vm.loadProject(projectAsset.data);
+            console.log(projectAsset);
+            this.loadProject(projectAsset.data);
         });
+        console.log('Banana');
+    }
+
+    /**
+     * Sets the total number of assets contained within the project which is currently being downloaded.
+     * Also resets the downloaded asset counter to zero.
+     * @param {number} total The total number of assets.
+     */
+    setTotalAssetCount (total) {
+        this.totalAssetCount = total;
+        this.downloadedAssetCounter = 0;
+    }
+
+    /**
+     * Increments the counter of assets downloaded from a project.
+     */
+    incrementAssetCounter () {
+        this.downloadedAssetCounter++;
+        console.log(this.downloadedAssetCounter, '/', this.totalAssetCount);
     }
 
     /**
@@ -471,7 +492,7 @@ class VirtualMachine extends EventEmitter {
         this.clear();
 
         const runtime = this.runtime;
-        const deserializePromise = function () {
+        const deserializePromise = () => {
             const projectVersion = projectJSON.projectVersion;
             if (projectVersion === 2) {
                 const sb2 = require('./serialization/sb2');
@@ -479,7 +500,7 @@ class VirtualMachine extends EventEmitter {
             }
             if (projectVersion === 3) {
                 const sb3 = require('./serialization/sb3');
-                return sb3.deserialize(projectJSON, runtime, zip);
+                return sb3.deserialize(projectJSON, runtime, zip, this.incrementAssetCounter, this.setTotalAssetCount);
             }
             return Promise.reject('Unable to verify Scratch Project version.');
         };
